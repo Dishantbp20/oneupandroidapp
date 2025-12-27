@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -15,7 +16,6 @@ import 'package:one_up_app/utils/app_preferences.dart';
 import 'package:one_up_app/utils/common_utilies.dart';
 import 'package:one_up_app/utils/constants.dart';
 import 'package:one_up_app/utils/image_path.dart';
-
 import '../api_service/web_client.dart';
 
 class LaunchScreen extends StatefulWidget {
@@ -34,7 +34,8 @@ class LaunchScreenState extends State<LaunchScreen> with WidgetsBindingObserver 
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     AppPreferences.init();
-    checkPermission();
+    // checkPermission();
+    _initFCMToken();
   }
 
   @override
@@ -42,7 +43,23 @@ class LaunchScreenState extends State<LaunchScreen> with WidgetsBindingObserver 
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
+  Future<void> _initFCMToken() async {
+    String? savedToken = AppPreferences.getFCMToken();
+    if (savedToken == null) {
+      log("🔹 No FCM token found, generating new one...");
+      String? newToken = await FirebaseMessaging.instance.getToken();
 
+      if (newToken != null) {
+        log("✅ New FCM Token: $newToken");
+        await AppPreferences.setFCMToken(newToken);
+      }
+    } else {
+      log("✅ FCM Token already exists: $savedToken");
+    }
+
+    // Proceed to next screen after small delay
+    checkPermission();
+  }
   /// ✅ Handle app lifecycle (foreground/background)
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -103,13 +120,34 @@ class LaunchScreenState extends State<LaunchScreen> with WidgetsBindingObserver 
     final sdkInt = await getAndroidSdkInt() ?? 0;
 
     if (sdkInt >= 33) {
+      final notificationStatus = await Permission.notification.status;
+      if (!notificationStatus.isGranted) {
+        final newStatus = await Permission.notification.request();
+        if (newStatus.isPermanentlyDenied) {
+          await openAppSettings();
+          return;
+        }
+      }
+
+      // Then request photo/media permission
       final statuses = await [Permission.photos].request();
       if (statuses[Permission.photos]?.isGranted == true) {
         goToMainScreen();
       } else if (statuses[Permission.photos]?.isPermanentlyDenied == true) {
         await openAppSettings();
       }
+
     } else {
+      // For Android 12 and below, handle storage + notification differently
+      final notificationStatus = await Permission.notification.status;
+      if (!notificationStatus.isGranted) {
+        final newStatus = await Permission.notification.request();
+        if (newStatus.isPermanentlyDenied) {
+          await openAppSettings();
+          return;
+        }
+      }
+
       if (await Permission.storage.isGranted) {
         goToMainScreen();
       } else {

@@ -3,7 +3,9 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:one_up_app/api_service/api_response.dart';
 import 'package:one_up_app/main_ui/create_event_screen.dart';
+import 'package:one_up_app/main_ui/event_setting_screen.dart';
 import 'package:one_up_app/utils/common_code.dart';
+import 'package:one_up_app/utils/image_path.dart';
 
 import '../api_service/api_end_points.dart';
 import '../api_service/dio_client.dart';
@@ -137,6 +139,37 @@ class _ListItemEventDetailsState extends State<ListItemEventDetails> {
             child: Icon(
               Icons.edit,
               color: AppColors.primaryBlue,
+            ),
+          ),
+          SizedBox(
+            width: 5,
+          ),
+          ElevatedButton(
+            onPressed: () => {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => EventSettingScreen(eventDetailsModel: widget.eventDetails,
+                        
+                      )))
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              // Button background
+              foregroundColor: Colors.black,
+              // Text color
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10), // Rounded corners
+                side: BorderSide(
+                    color: Colors.green,
+                    width: 1), // Border color & width
+              ),
+              padding: EdgeInsets.symmetric(vertical: 12),
+              elevation: 0, // Remove shadow if you want flat look
+            ),
+            child: Icon(
+              Icons.settings,
+              color: Colors.green,
             ),
           )
         ],

@@ -13,6 +13,7 @@ class UserDetailsModel{
   final String playerId;
   final String role;
   final String name;
+  final String image;
   final String dob;
   final String address;
   final String email;
@@ -25,6 +26,7 @@ class UserDetailsModel{
     required this.playerId,
     required this.role,
     required this.name,
+    required this.image,
   });
 
   factory UserDetailsModel.fromJson(Map<String, dynamic> json) {
@@ -35,6 +37,7 @@ class UserDetailsModel{
       name: json['name'],
       dob: json['dob'],
       address: json['address'],
+      image: json['image'],
       email: json['email'],
     );
   }

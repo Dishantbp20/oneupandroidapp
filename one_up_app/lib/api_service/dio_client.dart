@@ -147,6 +147,13 @@ class DioClient implements WebClient {
           "Unauthorized. Please login again.",
           response.statusCode.toString(),
         );
+      }else if(response.statusCode == 409){
+        navigatorKey.currentState?.pushReplacementNamed('/login');
+
+        return ApiResponse.fromError(
+          response.data['data']['messgae'],
+          response.statusCode.toString(),
+        );
       }else {
         return ApiResponse.fromError(
           "Server error: ${response.statusCode}",
@@ -156,7 +163,7 @@ class DioClient implements WebClient {
     } catch (e) {
       log("Error: ${e.toString()}");
     }
-    throw UnimplementedError("Unhandled code path in request<T>()");
+    throw Exception("We are unable to load data.");
   }
 }
 

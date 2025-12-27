@@ -5,6 +5,7 @@ const admin = "${mainPath}admin.png";
 const menu = "${mainPath}menu.png";
 const event = "${mainPath}event.png";
 const upcomingevent = "${mainPath}upcoming_event.png";
+const badgeImage = "${mainPath}badge.png";
 const eventView = "${mainPath}event_view.png";
 const completedEventImage = "${mainPath}completed_event.png";
 const registeredEventImage = "${mainPath}registered_event.png";

@@ -1,81 +1,65 @@
 import 'package:device_preview/device_preview.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:one_up_app/auth/launch_screen.dart';
 import 'package:one_up_app/auth/login_screen.dart';
+import 'package:one_up_app/firebase_options.dart';
+import 'package:one_up_app/services/fcm_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-void main() {
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Hide status and navigation bars
-  SystemChrome.setEnabledSystemUIMode(
-    SystemUiMode.edgeToEdge,
-    overlays: [
-      SystemUiOverlay.top,    // Shows the status bar
-      SystemUiOverlay.bottom, // Shows the navigation bar
-    ], // Or light
+  // Initialize Firebase only once
+  await Firebase.initializeApp(
+    name: 'One up notification',
+    options: DefaultFirebaseOptions.currentPlatform,
   );
-  // callWarmUpAPi();
+
+  // Initialize FCM Service
+  await FCMService.initialize();
+
+  // Keep system UI visible
+  SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.manual,
+    overlays: SystemUiOverlay.values,
+  );
+
+  // Run app
   runApp(
     DevicePreview(
-    enabled: !kReleaseMode, // Enable only in debug mode
-    builder: (context) => const MyApp(),
-  ),);
+      enabled: !kReleaseMode,
+      builder: (_) => const MyApp(),
+    ),
+  );
 }
 
-/*void callWarmUpAPi() async{
-  final response = await DioClient().request(
-    path: "",
-    method: MethodType.get,
-  );
-}*/
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'One up',
+      title: 'One Up',
       debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey,
-      initialRoute: 'launch_screen',
-      routes:{
-        'launch_screen': (context) => LaunchScreen(),
-        '/login': (context)=> LoginScreen()
+      // ✅ Do not use both home and initialRoute together
+      initialRoute: '/launch',
+      routes: {
+        '/launch': (context) => const LaunchScreen(),
+        '/login': (context) => const LoginScreen(),
       },
-      // themeMode: AppPreference.getIsDark()?ThemeMode.dark:ThemeMode.light,
-      // theme: ThemeDataStyle.light, // Light/Default mode styles
-      // darkTheme: ThemeDataStyle.dark,
-      home: const LaunchScreen(),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-  final String title;
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: const Center(
-        child: Column(
-          children: [
-          ],
-        ),
-      ),
+      // ✅ Set theme if you have one, or fallback to default
+      theme: ThemeData.light(),
+      // darkTheme: ThemeData.dark(),
+      // themeMode: ThemeMode.system,
+      // ✅ Required for DevicePreview (optional but helpful)
+      locale: DevicePreview.locale(context),
+      builder: DevicePreview.appBuilder,
     );
   }
 }

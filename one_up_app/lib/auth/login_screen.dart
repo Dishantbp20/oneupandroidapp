@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
-
 import 'package:dio/dio.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:one_up_app/auth/sign_up_screen.dart';
 import 'package:one_up_app/main_ui/dashboard_screen.dart';
@@ -9,7 +9,6 @@ import 'package:one_up_app/utils/app_preferences.dart';
 import 'package:one_up_app/utils/colors.dart';
 import 'package:one_up_app/utils/common_utilies.dart';
 import 'package:one_up_app/widgets/styled_button.dart';
-
 import '../api_service/api_end_points.dart';
 import '../api_service/api_response.dart';
 import '../api_service/dio_client.dart';
@@ -32,6 +31,29 @@ class _LoginScreenState extends State<LoginScreen> {
   late ApiResponse apiResponse ;
   final playerIdCtrl = TextEditingController();
   final passwordCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    AppPreferences.init();
+    // checkPermission();
+    _initFCMToken();
+  }
+
+  Future<void> _initFCMToken() async {
+    String? savedToken = AppPreferences.getFCMToken();
+    if (savedToken == null) {
+      log("🔹 No FCM token found, generating new one...");
+      String? newToken = await FirebaseMessaging.instance.getToken();
+
+      if (newToken != null) {
+        log("✅ New FCM Token: $newToken");
+        await AppPreferences.setFCMToken(newToken);
+      }
+    } else {
+      log("✅ FCM Token already exists: $savedToken");
+    }
+  }
   @override
   Widget build(BuildContext context) {
     AppPreferences.init();
@@ -256,6 +278,7 @@ class _LoginScreenState extends State<LoginScreen> {
         payload: {
           "playerId": playerIdCtrl.text,
           "password": passwordCtrl.text,
+          "token": AppPreferences.getFCMToken()
         },
         method: MethodType.post,
       );

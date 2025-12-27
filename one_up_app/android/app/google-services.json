@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "45115681764",
+    "project_id": "one-up-9b1c9",
+    "storage_bucket": "one-up-9b1c9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:45115681764:android:ba00d04e1f4209818535f1",
+        "android_client_info": {
+          "package_name": "build.gradle"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBvYiquGzTI4jqHubP_fz4Hu5EtGj2kuf8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:45115681764:android:40f31237fd7807158535f1",
+        "android_client_info": {
+          "package_name": "com.oneup.sports.one_up_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBvYiquGzTI4jqHubP_fz4Hu5EtGj2kuf8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

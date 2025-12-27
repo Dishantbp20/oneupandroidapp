@@ -724,7 +724,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         "email": emailCtrl.text,
         "password": passwordCtrl.text,
         "confirmPassword": confirmPasswordCtrl.text,
-        "isPaid": isPaid.toString(),
+        // "isPaid": isPaid.toString(),
       });
 
       final response = await _apiClient.request(
@@ -740,7 +740,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       } else {
         CommonUtilities.showAlertDialog(
           context,
-          message: response.data['message'],
+          message: response.data['messgae'],
           icon: const Icon(Icons.warning_amber, color: Colors.red, size: 50),
         );
       }

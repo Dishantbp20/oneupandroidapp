@@ -12,6 +12,7 @@ import '../utils/colors.dart';
 import '../utils/common_utilies.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/styled_button.dart';
+import 'login_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -227,16 +228,37 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     if (response.status == "200" && response.data["status"] == 200) {
       Navigator.pop(context);
-    } else {
+    }else if (response.status == "201" && response.data["status"] == 409) {
+      showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            content: Text(response.data['message'] ?? "Something went wrong"),
+            actions: [
+              TextButton(
+                onPressed: () =>{
+                  Navigator.pop(context)
+                },
+                child: const Text("OK"),
+              ),
+            ],
+          ));
+    }else {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text("Error", style: TextStyle(fontWeight: FontWeight.bold)),
           content: Text(response.data['message'] ?? "Something went wrong"),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () =>{
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const LoginScreen(),
+                  ),
+                )
+                },
               child: const Text("OK"),
             ),
           ],

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
@@ -41,16 +40,19 @@ class _CreateBadgesScreenState extends State<CreateBadgesScreen> {
   String fileName = "Please select image from library.";
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
+    badgeDetails = BadgeDetailsModel(isActive: false, id: '', bedgeName: '', image: '');
     AppPreferences.init();
 
     if (widget.isEdit) {
-      getBadgeDetailsByIDData(widget.id); // fetch event details if editing
+      // ✅ Show loader while fetching data
+      setState(() => isLoading = true);
+      getBadgeDetailsByIDData(widget.id);
+    } else {
+      setState(() => isLoading = false);
     }
-
-    setState(() => isLoading = false);
   }
+
   @override
   Widget build(BuildContext context) {
     double height = MediaQuery.of(context).size.height;
@@ -129,7 +131,12 @@ class _CreateBadgesScreenState extends State<CreateBadgesScreen> {
                                               fit: BoxFit.cover,
                                             ),
                                           )
-                                              : Icon(Icons.image, color: AppColors.lightGrey, size: 60),
+                                              : Image.network(badgeDetails.image,
+                                              errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
+                                                return Icon(Icons.image,
+                                                    color: AppColors.lightGrey, size: 60); // Display an error icon if the image fails to load
+                                              }
+                                          ),
                                           Row(
                                             children: [
                                               // const Icon(Icons.image, color: Colors.grey),
@@ -367,7 +374,6 @@ class _CreateBadgesScreenState extends State<CreateBadgesScreen> {
     setState(() {});
   }
   Future<void> getBadgeDetailsByIDData(String id) async {
-    // CommonUtilities.showLoadingDialog(context);
     try {
       final response = await DioClient().request(
         path: ApiEndPoints.getBadgeByIdEndPoint + id,
@@ -378,30 +384,27 @@ class _CreateBadgesScreenState extends State<CreateBadgesScreen> {
       setState(() {
         apiResponse = response;
       });
-      if (response.status == "200" || response.status == "201") { 
-        // final List<dynamic> jsonList = response.data["data"];
 
+      if (response.status == "200" || response.status == "201") {
         if (response.data['status'] == 200) {
           final data = response.data['data'];
-          final dynamic eventListJson = data; // extract the list
-          BadgeDetailsModel eventList = BadgeDetailsModel .fromJson(eventListJson);
-          // CommonUtilities.hideLoadingDialog(context);
+          BadgeDetailsModel eventList = BadgeDetailsModel.fromJson(data);
+
           setState(() {
             badgeDetails = eventList;
-            setData(); // your list variable
+            setData();
+            isLoading = false; // ✅ hide loader after success
           });
         } else {
-          // CommonUtilities.hideLoadingDialog(context);
+          setState(() => isLoading = false); // ✅ hide loader if failed
         }
       } else {
-        // CommonUtilities.hideLoadingDialog(context);
+        setState(() => isLoading = false); // ✅ hide loader if failed
       }
-      // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Uploaded successfully!')));
     } catch (e) {
-      // CommonUtilities.hideLoadingDialog(context);
       log("Error: ${e.toString()}");
-      // print("Upload error: $e");
-      // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed!')));
+      setState(() => isLoading = false); // ✅ hide loader on error
     }
   }
+
 }

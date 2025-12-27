@@ -1,0 +1,1 @@
+{"flutter":{"platforms":{"android":{"default":{"projectId":"oneup-backend","appId":"1:262285410223:android:7d41d22ecb1445aa25b95a","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"oneup-backend","configurations":{"android":"1:262285410223:android:7d41d22ecb1445aa25b95a","ios":"1:262285410223:ios:8eb747d030dcd2fd25b95a"}}}}}}

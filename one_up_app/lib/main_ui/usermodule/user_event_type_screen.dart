@@ -46,14 +46,15 @@ class _UserEventTypeScreenState extends State<UserEventTypeScreen> {
 
   void _scrollListener() {
     if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200 &&
+            _scrollController.position.maxScrollExtent - 200 &&
         !isLoadingMore &&
         hasMore) {
       _fetchEventTypes();
     }
   }
 
-  Future<void> _fetchEventTypes({bool refresh = false, bool initialLoad = false}) async {
+  Future<void> _fetchEventTypes(
+      {bool refresh = false, bool initialLoad = false}) async {
     if (initialLoad) {
       setState(() => isLoading = true);
     } else {
@@ -81,7 +82,7 @@ class _UserEventTypeScreenState extends State<UserEventTypeScreen> {
       if (response.status == "200" || response.status == "201") {
         if (response.data['status'] == 200) {
           final List<dynamic> eventTypeListJson =
-          response.data['data']['EventTypeDetails'];
+              response.data['data']['EventTypeDetails'];
 
           List<EventTypeDetailsModel> newItems = eventTypeListJson
               .map((json) => EventTypeDetailsModel.fromJson(json))
@@ -124,58 +125,63 @@ class _UserEventTypeScreenState extends State<UserEventTypeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return  Center(child: Lottie.asset(
-        'assets/animations/loader.json',
-        width: 120,
-        height: 120,
-        repeat: true,
-      ),);
-    }
-
-    return Column(
-      children: [
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: () => _fetchEventTypes(refresh: true, initialLoad: true),
-            child: eventDetails.isEmpty
-                ? const Center(child: Text("No event types found"))
-                : GridView.builder(
-              controller: _scrollController,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1.1,
+    return isLoading
+        ? Center(
+            child: Lottie.asset(
+            'assets/animations/loader.json',
+            width: 120,
+            height: 120,
+            repeat: true,
+          ))
+        : Column(
+            children: [
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () =>
+                      _fetchEventTypes(refresh: true, initialLoad: true),
+                  child: eventDetails.isEmpty
+                      ? const Center(child: Text("No event types found"))
+                      : GridView.builder(
+                          controller: _scrollController,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 16,
+                            crossAxisSpacing: 12,
+                            childAspectRatio: 1.1,
+                          ),
+                          padding: const EdgeInsets.all(16),
+                          itemCount:
+                              eventDetails.length + (isLoadingMore ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index < eventDetails.length &&
+                                !eventDetails[index]
+                                    .eventTypeName
+                                    .contains("Upcoming")) {
+                              return _buildDetailTile(
+                                eventDetails[index].id,
+                                eventDetails[index].eventTypeName,
+                                icon: Icons.emoji_events,
+                              );
+                            } /*else {
+                              return Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: Lottie.asset(
+                                    'assets/animations/loader.json',
+                                    width: 120,
+                                    height: 120,
+                                    repeat: true,
+                                  ),
+                                ),
+                              );
+                            }*/
+                          },
+                        ),
+                ),
               ),
-              padding: const EdgeInsets.all(16),
-              itemCount: eventDetails.length + (isLoadingMore ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index < eventDetails.length) {
-                  return _buildDetailTile(
-                    eventDetails[index].id,
-                    eventDetails[index].eventTypeName,
-                    icon: Icons.emoji_events,
-                  );
-                } else {
-                  return  Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Lottie.asset(
-        'assets/animations/loader.json',
-        width: 120,
-        height: 120,
-        repeat: true,
-      ),
-                    ),
-                  );
-                }
-              },
-            ),
-          ),
-        ),
-      ],
-    );
+            ],
+          );
   }
 
   Widget _buildDetailTile(String id, String title, {IconData? icon}) {
@@ -185,7 +191,9 @@ class _UserEventTypeScreenState extends State<UserEventTypeScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => isUpcoming ? UserEventsListing(id: id,eventStatus: "Upcoming") :EventStatusCountScreen(id: id),
+            builder: (context) => isUpcoming
+                ? UserEventsListing(id: id, eventStatus: "Upcoming")
+                : EventStatusCountScreen(id: id),
           ),
         );
       },
@@ -196,7 +204,9 @@ class _UserEventTypeScreenState extends State<UserEventTypeScreen> {
         child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: isUpcoming ? AppColors.getGradientColor():AppColors.getTileColor(),
+              colors: isUpcoming
+                  ? AppColors.getGradientColor()
+                  : AppColors.getTileColor(),
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -215,36 +225,37 @@ class _UserEventTypeScreenState extends State<UserEventTypeScreen> {
                   ),
                 ),
               Align(
-                alignment: Alignment.center,
-                child:
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image(image: AssetImage(isUpcoming? upcomingevent:event),width: 48,height: 48,),
-                    Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Text(
-                        title,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontFamily: 'Lato',
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          shadows: [
-                            Shadow(
-                              blurRadius: 4,
-                              color: Colors.black38,
-                              offset: Offset(1, 1),
-                            ),
-                          ],
+                  alignment: Alignment.center,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image(
+                        image: AssetImage(isUpcoming ? upcomingevent : event),
+                        width: 48,
+                        height: 48,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Text(
+                          title,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontFamily: 'Lato',
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            shadows: [
+                              Shadow(
+                                blurRadius: 4,
+                                color: Colors.black38,
+                                offset: Offset(1, 1),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                )    
-                
-              ),
+                    ],
+                  )),
             ],
           ),
         ),

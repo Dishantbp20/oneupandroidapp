@@ -139,17 +139,6 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return  Scaffold(
-        body: Center(child: Lottie.asset(
-        'assets/animations/loader.json',
-        width: 120,
-        height: 120,
-        repeat: true,
-      ),),
-      );
-    }
-
     if (event == null) {
       return const Scaffold(
         body: Center(child: Text("Failed to load event details")),
@@ -168,7 +157,12 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         ),
         flexibleSpace: const CustomAppBar(),
       ),
-      body: SingleChildScrollView(
+      body:isLoading? Center(child: Lottie.asset(
+        'assets/animations/loader.json',
+        width: 120,
+        height: 120,
+        repeat: true,
+      ),):SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,66 +177,77 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    event!.name,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Lato',
+                  Visibility(
+                      visible: event!.isShowName,
+                      child: Text(
+                        event!.name,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Lato',
+                        ),
+                      ) ,
+                  ),
+
+                  const SizedBox(height: 10),
+                  Visibility(
+                    visible: event!.isShowStartDate,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_month, size: 20, color: Colors.black),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Event Start Date: ",
+                          style: const TextStyle(fontSize: 14, color: Colors.black,fontFamily: 'Lato',),
+                        ),
+                        Expanded(
+                          child: Text(
+                            CommonCode.setDateFormat(event!.startDate),
+                            style: const TextStyle(fontSize: 14, color: Colors.black54,fontFamily: 'Lato',),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      const Icon(Icons.calendar_month, size: 20, color: Colors.black),
-                      const SizedBox(width: 8),
-                      Text(
-                        "Event Start Date: ",
-                        style: const TextStyle(fontSize: 14, color: Colors.black,fontFamily: 'Lato',),
-                      ),
-                      Expanded(
-                        child: Text(
-                          CommonCode.setDateFormat(event!.startDate),
-                          style: const TextStyle(fontSize: 14, color: Colors.black54,fontFamily: 'Lato',),
-                        ),
-                      ),
-                    ],
-                  ),
                   const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(Icons.calendar_today, size: 20, color: Colors.black,),
-                      const SizedBox(width: 8),
-                      Text(
-                        "Event End Date: ",
-                        style: const TextStyle(fontSize: 14, color: Colors.black,fontFamily: 'Lato',),
-                      ),
-                      Expanded(
-                        child: Text(
-                          CommonCode.setDateFormat(event!.endDate),
-                          style: const TextStyle(fontSize: 14, color: Colors.black54,fontFamily: 'Lato',),
+                  Visibility(
+                    visible: event!.isShowEndDate,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_today, size: 20, color: Colors.black,),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Event End Date: ",
+                          style: const TextStyle(fontSize: 14, color: Colors.black,fontFamily: 'Lato',),
                         ),
-                      ),
-                    ],
+                        Expanded(
+                          child: Text(
+                            CommonCode.setDateFormat(event!.endDate),
+                            style: const TextStyle(fontSize: 14, color: Colors.black54,fontFamily: 'Lato',),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 20),
                   // Description
-                  Text("Description",style: TextStyle(fontSize: 14, color: Colors.black,fontFamily: 'Lato',),),
-                  Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.all(Radius.circular(10)),
-                          border: Border.all(
-                              color: Colors.black45
+                  Visibility(visible: event!.isShowDescription,child: Text("Description",style: TextStyle(fontSize: 14, color: Colors.black,fontFamily: 'Lato',),),),
+                  Visibility(visible: event!.isShowDescription,
+                      child:Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.all(Radius.circular(10)),
+                              border: Border.all(
+                                  color: Colors.black45
+                              )
+                          ),
+                          child: Padding(padding: EdgeInsets.all(15),
+                            child: Text(
+                              event!.description ?? "No description available",
+                              style: TextStyle(fontSize: 12, color: Colors.black38,fontFamily: 'Lato',),
+                            ),
                           )
-                      ),
-                      child: Padding(padding: EdgeInsets.all(15),
-                        child: Text(
-                          event!.description ?? "No description available",
-                          style: TextStyle(fontSize: 12, color: Colors.black38,fontFamily: 'Lato',),
-                        ),
-                      )
-                  ),
+                      ) ),
                   const SizedBox(height: 20),
 
                   _buildEventFeesModel()

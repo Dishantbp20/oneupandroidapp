@@ -65,117 +65,27 @@ class _EditUserScreenState extends State<EditUserScreen> {
   Future<void> _loadDropdownData() async {
     setState(() => isLoading = true);
 
-    await setBadgeDropdownList(); // fetch games + event types
-    await getUserListByIDData(widget.id); // fetch event details if editing
-
-    setState(() => isLoading = false);
-  }
-  Future<void> setBadgeDropdownList() async {
-    // CommonUtilities.showLoadingDialog(context);
-    Map<String, dynamic> query = {
-      "page": 1,
-    };
     try {
-      final response = await DioClient().request(
-          path: ApiEndPoints.getBadgeListEndPoint,
-          method: MethodType.get,
-          // queryParameters: query
-      );
-      log("✅ API Response: ${response.status} - ${response.message}");
+      // 1️⃣ Get user details first (we need user.id)
+      await getUserListByIDData(widget.id);
 
-      setState(() {
-        apiResponse = response;
-      });
-      if(response.status == "200" || response.status == "201"){
-        // final List<dynamic> jsonList = response.data["data"];
+      // 2️⃣ Get all badges
+      await setBadgeDropdownList();
 
-        if(response.data['status'] == 200){
-          final data = response.data['data'];
-          final List<dynamic> BedgeDetails = data['BedgeDetails']; // extract the list
 
-          List<BadgeDetailsModel> badgesList = BedgeDetails
-              .map((json) => BadgeDetailsModel.fromJson(json))
-              .toList();
-
-          setState(() {
-            badgeDetails = badgesList;
-          });
-          // setBadgeDropdownList();
-        }else{
-          CommonUtilities.showAlertDialog(context, message: response.data['message'],icon: Icon(Icons.warning_amber,color: Colors.red,size: 50,));
-        }
-      }else{
-        CommonUtilities.showAlertDialog(context, message: response.data['message'],icon: Icon(Icons.warning_amber,color: Colors.red,size: 50,));
-      }
-      // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Uploaded successfully!')));
     } catch (e) {
-      log("Error: ${e.toString()}");
-      // print("Upload error: $e");
-      // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed!')));
+      log("❌ _loadDropdownData() error: $e");
+    } finally {
+      setState(() => isLoading = false);
     }
   }
-  Future<void> setSelectedBadgeList() async {
-    // CommonUtilities.showLoadingDialog(context);
-    Map<String, dynamic> query = {
-      "page": 1,
-    };
-    try {
-      final response = await DioClient().request(
-        path: ApiEndPoints.getBadgesOfUsersEndPoint + user.id,
-        method: MethodType.get,
-        // queryParameters: query
-      );
-      log("✅ API Response: ${response.status} - ${response.message}");
 
-      setState(() {
-        apiResponse = response;
-      });
-      if(response.status == "200" || response.status == "201"){
-        // final List<dynamic> jsonList = response.data["data"];
 
-        if(response.data['status'] == 200){
-          final data = response.data['data'];
-          final List<dynamic> BedgeDetails = data; // extract the list
-          List<BadgeDetailsModel> badgesList = [];
-          for(int i=0; i<=BedgeDetails.length-1; i++){
-            BadgeDetailsModel obj =  BadgeDetailsModel(id: BedgeDetails[i]['bedgeId'], bedgeName: BedgeDetails[i]['bedgeName']);
-            badgesList.add(obj);
-          }
-         /* List<BadgeDetailsModel> badgesList = data
-              .map((json) => BadgeDetailsModel.fromJson(json))
-              .toList();*/
-
-          setState(() {
-            selectBadgeDetails = badgesList;
-          });
-          // setBadgeDropdownList();
-        }else{
-          CommonUtilities.showAlertDialog(context, message: response.data['message'],icon: Icon(Icons.warning_amber,color: Colors.red,size: 50,));
-        }
-      }else{
-        CommonUtilities.showAlertDialog(context, message: response.data['message'],icon: Icon(Icons.warning_amber,color: Colors.red,size: 50,));
-      }
-      // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Uploaded successfully!')));
-    } catch (e) {
-      log("Error: ${e.toString()}");
-      // print("Upload error: $e");
-      // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed!')));
-    }
-  }
   @override
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
     double height = MediaQuery.of(context).size.height;
-    return isLoading
-        ? Center(
-      child: Lottie.asset(
-        'assets/animations/loader.json',
-        width: 120,
-        height: 120,
-        repeat: true,
-      ), // 🔹 show loader while fetching
-    )
-        : Scaffold(
+    return Scaffold(
       appBar: AppBar(
         title: Text(
           "Edit Player Profile",
@@ -194,7 +104,16 @@ class _EditUserScreenState extends State<EditUserScreen> {
         ),
         flexibleSpace: CustomAppBar(),
       ),
-      body: Stack(
+      body: isLoading
+          ? Center(
+        child: Lottie.asset(
+          'assets/animations/loader.json',
+          width: 120,
+          height: 120,
+          repeat: true,
+        ), // 🔹 show loader while fetching
+      )
+          :  Stack(
         children: [
           // Form content
           Container(
@@ -445,35 +364,56 @@ class _EditUserScreenState extends State<EditUserScreen> {
       color: Colors.white,
       child: Container(
         padding: const EdgeInsets.all(10),
-        child: MultiSelectDialogField(
+        child: MultiSelectDialogField<BadgeDetailsModel>(
           items: badgeDetails
-              .map((eventType) => MultiSelectItem<BadgeDetailsModel>(eventType, eventType.bedgeName))
+              .map((badge) =>
+              MultiSelectItem<BadgeDetailsModel>(badge, badge.bedgeName))
               .toList(),
           initialValue: selectBadgeDetails,
-          title: const Text("Add Badges"),
+          title: const Text("Assign Badges"),
           buttonText: const Text("Choose Badges"),
-
           searchable: true,
-          validator: (values) {
-            if (values == null || values.isEmpty) {
-              return "Please select at least one event type";
-            }
-            return null;
-          },
-          onConfirm: (values) async{
-            setState(() {
-              selectBadgeDetails = values;
-            });
-            await assignBadgeToUser();
-          },
-          onSaved: (val) async{
-            await assignBadgeToUser();
+          onConfirm: (values) async {
+            await _handleBadgeSelectionChange(values);
           },
         ),
       ),
     );
   }
-  Future<void> assignBadgeToUser() async{
+
+  Future<void> _handleBadgeSelectionChange(List<BadgeDetailsModel> newSelection) async {
+    final previousSelection = List<BadgeDetailsModel>.from(selectBadgeDetails);
+
+    setState(() {
+      selectBadgeDetails = newSelection;
+    });
+
+    // 🔍 Find added badges
+    final addedBadges = newSelection
+        .where((b) => !previousSelection.contains(b))
+        .toList();
+
+    // 🔍 Find removed badges
+    final removedBadges = previousSelection
+        .where((b) => !newSelection.contains(b))
+        .toList();
+
+    log("✅ Added badges: ${addedBadges.map((b) => b.bedgeName)}");
+    log("❌ Removed badges: ${removedBadges.map((b) => b.bedgeName)}");
+
+    // 1️⃣ Assign new badges
+    for (final badge in addedBadges) {
+      await _assignBadgeToUser();
+    }
+
+    // 2️⃣ Remove unselected badges
+    for (final badge in removedBadges) {
+      await _removeBadgeFromUser(badge);
+    }
+  }
+
+
+  Future<void> _assignBadgeToUser() async{
     List<String> selectBadgeDetailsIds = selectBadgeDetails.map((eventType) => eventType.id).toList();
     var formData = jsonEncode({
       "userId": user.id,
@@ -499,6 +439,26 @@ class _EditUserScreenState extends State<EditUserScreen> {
       }
     }catch(e){
       log("Error: ${e.toString()}");
+    }
+  }
+  Future<void> _removeBadgeFromUser(BadgeDetailsModel badge) async {
+    try {
+      final response = await DioClient().request(
+        path: ApiEndPoints.removeBadgeToUserEndPoint,
+        method: MethodType.patch,
+        payload: {
+          "userId": user.id,
+          "bedgeId": badge.id,
+        },
+      );
+
+      if (response.status == "200" || response.status == "201") {
+        if (response.data['status'] == 200) {
+          log("🗑️ Badge '${badge.bedgeName}' removed from user.");
+        }
+      }
+    } catch (e) {
+      log("❌ removeBadgeFromUser() error: $e");
     }
   }
   Future<void> updateUserDetails() async {
@@ -571,44 +531,74 @@ class _EditUserScreenState extends State<EditUserScreen> {
   }
 
   Future<void> getUserListByIDData(String id) async {
-    CommonUtilities.showLoadingDialog(context);
     try {
       final response = await DioClient().request(
         path: ApiEndPoints.getUserByIdEndPoint + id,
         method: MethodType.get,
       );
-      log("✅ API Response: ${response.status} - ${response.message}");
 
-      setState(() {
-        apiResponse = response;
-      });
       if (response.status == "200" || response.status == "201") {
-        // final List<dynamic> jsonList = response.data["data"];
-
         if (response.data['status'] == 200) {
           final data = response.data['data'];
-          final dynamic userListJson = data; // extract the list
-          UserDetailsModel userList = UserDetailsModel.fromJson(userListJson);
-          CommonUtilities.hideLoadingDialog(context);
-          setState(() {
-            user = userList;
-            setData(); // your list variable
-          });
-          setSelectedBadgeList();
-        } else {
-          CommonUtilities.hideLoadingDialog(context);
+          final userModel = UserDetailsModel.fromJson(data);
+
+          user = userModel;
+          setData();
         }
-      } else {
-        CommonUtilities.hideLoadingDialog(context);
       }
-      // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Uploaded successfully!')));
     } catch (e) {
-      CommonUtilities.hideLoadingDialog(context);
-      log("Error: ${e.toString()}");
-      // print("Upload error: $e");
-      // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed!')));
+      log("❌ getUserListByIDData() error: $e");
     }
   }
+
+
+  Future<void> setBadgeDropdownList() async {
+    try {
+      final response = await DioClient().request(
+        path: ApiEndPoints.getBadgeListEndPoint,
+        method: MethodType.get,
+      );
+
+      if (response.status == "200" || response.status == "201") {
+        if (response.data['status'] == 200) {
+          final List<dynamic> bedgeData = response.data['data']['BedgeDetails'];
+          badgeDetails =
+              bedgeData.map((json) => BadgeDetailsModel.fromJson(json)).toList();
+          await setSelectedBadgeList();
+        }
+      }
+    } catch (e) {
+      log("❌ setBadgeDropdownList() error: $e");
+    }
+  }
+
+  Future<void> setSelectedBadgeList() async {
+    if (user.id.isEmpty) return; // safeguard
+
+    try {
+      final response = await DioClient().request(
+        path: ApiEndPoints.getBadgesOfUsersEndPoint + user.id,
+        method: MethodType.get,
+      );
+
+      if (response.status == "200" || response.status == "201") {
+        if (response.data['status'] == 200) {
+          final List<dynamic> badgeData = response.data['data'];
+          selectBadgeDetails = badgeData
+              .map((b) => BadgeDetailsModel(
+            id: b['bedgeId'],
+            bedgeName: b['bedgeName'],
+              image: b['image'],
+            isActive: b['isActive']
+          ))
+              .toList();
+        }
+      }
+    } catch (e) {
+      log("❌ setSelectedBadgeList() error: $e");
+    }
+  }
+
 
   void setData() {
     playerIdCtrl.text = user.playerId;

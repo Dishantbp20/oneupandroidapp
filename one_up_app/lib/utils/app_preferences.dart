@@ -7,6 +7,7 @@ class AppPreferences{
   static const _keyIsAdmin = 'keyIsAdmin';
   static const _keyToken = 'keyToken';
   static const _keyUserSession = 'keyUserSession';
+  static const _keyFcmToken = '_keyFcmToken';
 
   static Future init() async =>
       _preferences = await SharedPreferences.getInstance();
@@ -23,6 +24,11 @@ class AppPreferences{
       {await _preferences?.setString(_keyToken, token)};
 
   static String? getToken() => _preferences?.getString(_keyToken) ?? null;
+
+  static Future setFCMToken(String token) async =>
+      {await _preferences?.setString(_keyFcmToken, token)};
+
+  static String? getFCMToken() => _preferences?.getString(_keyFcmToken) ?? null;
 
   static Future setUserSession(String data) async =>
       {await _preferences?.setString(_keyUserSession, data)};

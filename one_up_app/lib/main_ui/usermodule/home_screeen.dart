@@ -1,12 +1,7 @@
-
 import 'dart:convert';
 import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:one_up_app/main_ui/usermodule/event_status_count_screen.dart';
-import 'package:one_up_app/main_ui/usermodule/user_events_listing.dart';
-
 import '../../api_service/api_end_points.dart';
 import '../../api_service/dio_client.dart';
 import '../../api_service/web_client.dart';
@@ -16,7 +11,7 @@ import '../../utils/colors.dart';
 import '../../utils/common_code.dart';
 import '../../utils/common_utilies.dart';
 import '../../utils/image_path.dart';
-import '../../widgets/styled_button.dart';
+import 'user_events_listing.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -27,8 +22,10 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<EventDetailsModel> eventDetails = [];
-  bool isLoading = false; // initial loader
-  bool isLoadingMore = false; // pagination loader
+  Map<String, dynamic>? dashboardData;
+  bool isLoading = false;
+  bool isDashboardLoading = false;
+  bool isLoadingMore = false;
   int currentPage = 1;
   final int pageSize = 10;
   bool hasMore = true;
@@ -39,9 +36,10 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     AppPreferences.init();
-    _fetchRegisteredEvents(initialLoad: true);
+    _fetchDashboardAndEvents();
     _scrollController.addListener(_scrollListener);
   }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -57,7 +55,42 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _fetchRegisteredEvents({bool refresh = false, bool initialLoad = false}) async {
+  Future<void> _fetchDashboardAndEvents() async {
+    setState(() {
+      isDashboardLoading = true;
+    });
+    await getDashboardDetails();
+    // await _fetchRegisteredEvents(initialLoad: true);
+    setState(() {
+      isDashboardLoading = false;
+    });
+  }
+
+  Future<void> getDashboardDetails() async {
+    try {
+      final response = await DioClient().request(
+        path: ApiEndPoints.getUserDashboard,
+        method: MethodType.get,
+      );
+
+      log("✅ Dashboard Response: ${response.status} - ${response.message}");
+      if (response.data['status'] == 200) {
+        setState(() {
+          dashboardData = response.data['data'];
+        });
+      } else {
+        _showError(response.data['message']);
+      }
+    } catch (ex) {
+      log("❌ Dashboard Error: ${ex.toString()}");
+      _showError("Something went wrong!");
+    }
+  }
+
+  Future<void> _fetchRegisteredEvents({
+    bool refresh = false,
+    bool initialLoad = false,
+  }) async {
     if (initialLoad) {
       setState(() => isLoading = true);
     } else {
@@ -74,35 +107,25 @@ class _HomeScreenState extends State<HomeScreen> {
       final response = await DioClient().request(
         path: ApiEndPoints.getUserRegisteredEventsEndPoint,
         method: MethodType.get,
-        /*queryParameters: {
-          "page": currentPage,
-          "perPage": pageSize,
-        },*/
       );
 
-      log("✅ API Response: ${response.status} - ${response.message}");
+      log("✅ Registered Events Response: ${response.status} - ${response.message}");
 
-      if (response.status == "200" || response.status == "201") {
-        if (response.data['status'] == 200) {
-          final List<dynamic> eventTypeListJson = response.data['data'];
+      if (response.data['status'] == 200) {
+        final List<dynamic> eventTypeListJson = response.data['data'];
+        List<EventDetailsModel> newItems =
+        eventTypeListJson.map((json) => EventDetailsModel.fromJson(json)).toList();
 
-          List<EventDetailsModel> newItems = eventTypeListJson
-              .map((json) => EventDetailsModel.fromJson(json))
-              .toList();
+        setState(() {
+          if (refresh || initialLoad) {
+            eventDetails = newItems;
+          } else {
+            eventDetails.addAll(newItems);
+          }
 
-          setState(() {
-            if (refresh || initialLoad) {
-              eventDetails = newItems;
-            } else {
-              eventDetails.addAll(newItems);
-            }
-
-            if (newItems.isNotEmpty) currentPage++;
-            if (newItems.length < pageSize) hasMore = false;
-          });
-        } else {
-          _showError(response.data['message']);
-        }
+          if (newItems.isNotEmpty) currentPage++;
+          if (newItems.length < pageSize) hasMore = false;
+        });
       } else {
         _showError(response.data['message']);
       }
@@ -124,98 +147,44 @@ class _HomeScreenState extends State<HomeScreen> {
       icon: const Icon(Icons.warning_amber, color: Colors.red, size: 50),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     Map<String, dynamic> userData = jsonDecode(AppPreferences.getUserSession());
-    if (isLoading) {
-      return  Center(child: Lottie.asset(
+
+    final upcomingEvents = dashboardData?['upcomingEvents']?['data'] ?? [];
+    final adDetails = dashboardData?['adDetails'];
+    final registrationEvents = dashboardData?['registrationEvents']?['data'] ?? [];
+
+    return isDashboardLoading
+        ? Center(
+      child: Lottie.asset(
         'assets/animations/loader.json',
         width: 120,
         height: 120,
         repeat: true,
-      ),);
-    }
-
-    return Column(
+      ),
+    )
+        : Column(
       children: [
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.only(bottom: 20,right: 25,left: 25),
-          decoration: BoxDecoration(
-            color: AppColors.primaryBlue,
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(30),
-              bottomRight: Radius.circular(30),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-              Text(
-                  'Welcome ${userData["name"]}!',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Lato'
-                  )
-              ),
-              const SizedBox(height: 8),
-              Text(
-                  'Stay organized with your upcoming events',
-                  style:TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Lato'
-                  )
-              ),
-            ],
-          ),
-        ),
-        Container(
-          alignment: Alignment.center,
-          padding: EdgeInsets.symmetric(horizontal: 20),
-          margin: const EdgeInsets.only(top: 20),
-          child: const Text(
-            "Registered Events",
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Lato',
-            ),
-          ),
-        ),
+        _buildHeader(userData),
         Expanded(
           child: RefreshIndicator(
-            onRefresh: () => _fetchRegisteredEvents(refresh: true, initialLoad: true),
-            child: eventDetails.isEmpty
-                ? const Center(child: Text("No Events found"))
-                : ListView.builder(
+            onRefresh: () async {
+              await _fetchDashboardAndEvents();
+            },
+            child: ListView(
               controller: _scrollController,
               padding: const EdgeInsets.all(16),
-              itemCount: eventDetails.length + (isLoadingMore ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index < eventDetails.length) {
-                  return _buildDetailTile(
-                    eventDetails[index],
-                    icon: Icons.emoji_events,
-                  );
-                } else {
-                  return  Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Lottie.asset(
-                        'assets/animations/loader.json',
-                        width: 120,
-                        height: 120,
-                        repeat: true,
-                      ),
-                    ),
-                  );
-                }
-              },
+              children: [
+                _buildDashboardSection(
+                  upcomingEvents,
+                  adDetails,
+                  registrationEvents,
+                ),
+                /*const SizedBox(height: 10),
+                _buildRegisteredEventsSection(),*/
+              ],
             ),
           ),
         ),
@@ -223,77 +192,115 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildDetailTile(EventDetailsModel event, {IconData? icon}) {
-    return InkWell(
-      onTap: () {
-        // Navigation logic (if needed)
-      },
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 3),
-        child: Card(
-          elevation: 5,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: AppColors.getDashboardTileColors(),
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
+  Widget _buildHeader(Map<String, dynamic> userData) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.only(bottom: 20, right: 25, left: 25, top: 20),
+      decoration: BoxDecoration(
+        color: AppColors.primaryBlue,
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Welcome ${userData["name"]}!',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Lato',
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Stay organized with your upcoming events',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Lato',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDashboardSection(
+      List upcomingEvents,
+      dynamic adDetails,
+      List registrationEvents,
+      ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Your Dashboard",
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Lato'),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _dashboardCard(
+              "Upcoming Events",
+              "${dashboardData?['upcomingEvents']?['count']}",
+              Icons.event,
+              (){
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => UserEventsListing(id: dashboardData?['upcomingEvents']['id'],eventStatus: "Upcoming"),
+                  ),
+                );
+              },
+            ),
+            _dashboardCard(
+                "Registration",
+                "${registrationEvents.length}",
+                Icons.how_to_reg,
+                (){}
+            ),
+            // _dashboardCard("Ads", adDetails != null ? "1" : "0", Icons.campaign),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (adDetails != null) _buildAdCard(adDetails),
+      ],
+    );
+  }
+
+  Widget _dashboardCard(String title, String count, IconData icon, VoidCallback onTap) {
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap, // 👈 Tap handler
+        child: Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          color: Colors.blue.shade50,
+          elevation: 3,
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
               children: [
-                Image.asset(
-                  registeredEventImage,
-                  width: 32,
-                  height: 32,
+                Icon(icon, color: AppColors.primaryBlue, size: 28),
+                const SizedBox(height: 6),
+                Text(
+                  count,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-
-                const SizedBox(width: 8),
-
-                /// ✅ Fix: Expanded is now directly under Row
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text(
-                      event.name,
-                      textAlign: TextAlign.center,
-                      maxLines: 1, // 👈 prevent overflow
-                      overflow: TextOverflow.ellipsis, // 👈 add dots if too long
-                      style: const TextStyle(
-                        fontFamily: 'Lato',
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        shadows: [
-                          Shadow(
-                            blurRadius: 4,
-                            color: Colors.black38,
-                            offset: Offset(1, 1),
-                          ),
-                        ],
-                      ),
-                    ),
+                const SizedBox(height: 4),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.black54,
+                    fontFamily: 'Lato',
                   ),
-                ),
-
-                ElevatedButton(
-                  onPressed: () => eventDetailsView(event),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      side: const BorderSide(color: Colors.white, width: 1),
-                    ),
-                    padding: const EdgeInsets.all(8),
-                    elevation: 0,
-                  ),
-                  child: const Icon(Icons.remove_red_eye_sharp, color: Colors.white),
                 ),
               ],
             ),
@@ -303,119 +310,119 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void eventDetailsView(EventDetailsModel event){
-    showDialog(
-      context: context,
-      barrierDismissible: false, // Prevent dismiss by tapping outside
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          content:
-          Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    Align(
-                      alignment: Alignment.center,
-                      child: Text("Events Details",
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Lato',
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                        iconSize: 24,
-                        onPressed: (){
-                          Navigator.pop(context);
-                        }, icon: Icon(Icons.cancel,color: Colors.green,))
-                  ],
-                ),
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.all(Radius.circular(10)),
-                    border: Border.all(width: 2,color: Colors.green),
-                  ),
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        event.name,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Lato',
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          const Icon(Icons.calendar_month, size: 20, color: Colors.black),
-                          const SizedBox(width: 8),
-                          Text(
-                            "Event Start Date: ",
-                            style: const TextStyle(fontSize: 14, color: Colors.black,fontFamily: 'Lato',),
-                          ),
-                          Expanded(
-                            child: Text(
-                              CommonCode.setDateFormat(event.startDate),
-                              style: const TextStyle(fontSize: 14, color: Colors.black54,fontFamily: 'Lato',),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          const Icon(Icons.calendar_today, size: 20, color: Colors.black,),
-                          const SizedBox(width: 8),
-                          Text(
-                            "Event End Date: ",
-                            style: const TextStyle(fontSize: 14, color: Colors.black,fontFamily: 'Lato',),
-                          ),
-                          Expanded(
-                            child: Text(
-                              CommonCode.setDateFormat(event.endDate),
-                              style: const TextStyle(fontSize: 14, color: Colors.black54,fontFamily: 'Lato',),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      // Description
-                      Text("Description",style: TextStyle(fontSize: 14, color: Colors.black,fontFamily: 'Lato',),),
-                      Container(
-                        decoration: BoxDecoration(
-                            borderRadius: BorderRadius.all(Radius.circular(10)),
-                            border: Border.all(
-                                color: Colors.black45
-                            )
-                        ),
-                        padding: EdgeInsets.all(15),
 
-                        child: Text(
-                          event.description ?? "No description available",
-                          style: TextStyle(fontSize: 14, color: Colors.black38,fontFamily: 'Lato',),
-                        ),
-                      )
-                    ],
-                  ),),
-              ]
-          ),
-          /*actions: [
-            StyledButton(text: "Cancel",onPressed: ()=>{
-              Navigator.pop(context)
-            })
-          ],*/
-        );
-      },
+  Widget _buildAdCard(Map ad) {
+    return Card(
+      color: Colors.orange.shade50,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 3,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            const Icon(Icons.campaign, color: Colors.orange, size: 30),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(ad['adName'] ?? '',
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.bold, fontFamily: 'Lato')),
+                  const SizedBox(height: 4),
+                  Text(
+                    ad['adDescription'] ?? '',
+                    style: const TextStyle(fontSize: 13, color: Colors.black54, fontFamily: 'Lato'),
+                  ),
+                ],
+              ),
+            )
+          ],
+        ),
+      ),
     );
   }
 
+  Widget _buildRegisteredEventsSection() {
+    return Column(
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(bottom: 10, top: 10),
+          child: Text(
+            "Registered Events",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Lato'),
+          ),
+        ),
+        if (isLoading)
+          Center(
+            child: Lottie.asset('assets/animations/loader.json', width: 120, height: 120),
+          )
+        else if (eventDetails.isEmpty)
+          const Center(child: Text("No events found"))
+        else
+          ...eventDetails.map((event) => _buildDetailTile(event)).toList(),
+        if (isLoadingMore)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Lottie.asset('assets/animations/loader.json', width: 80, height: 80),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildDetailTile(EventDetailsModel event) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      child: ListTile(
+        leading: Image.asset(registeredEventImage, width: 32, height: 32),
+        title: Text(
+          event.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Lato'),
+        ),
+        subtitle: Text(
+          CommonCode.setDateFormat(event.startDate),
+          style: const TextStyle(color: Colors.black54, fontFamily: 'Lato'),
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.remove_red_eye_outlined, color: Colors.blue),
+          onPressed: () => eventDetailsView(event),
+        ),
+      ),
+    );
+  }
+
+  void eventDetailsView(EventDetailsModel event) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Event Details",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Lato')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(event.name,
+                style:
+                const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, fontFamily: 'Lato')),
+            const SizedBox(height: 10),
+            Text(event.description ?? "No description available",
+                style: const TextStyle(color: Colors.black54, fontFamily: 'Lato')),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Close"),
+          )
+        ],
+      ),
+    );
+  }
 }

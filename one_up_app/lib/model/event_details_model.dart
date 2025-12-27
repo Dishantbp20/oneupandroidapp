@@ -12,8 +12,16 @@ class EventDetailsModel {
   final String description;
    List<GameDetailsModel> games=[];
    List<EventTypeDetailsModel> eventtypes=[];
+  final bool isShowName;
+  final bool isShowDescription;
+  final bool isShowStartDate;
+  final bool isShowEndDate;
+  final bool isShowRegistrationStartDate;
+  final bool isShowRegistrationEndDate;
 
-  EventDetailsModel({required this.id, required this.name, required this.startDate, required this.endDate,required this.registrationStartDate, required this.registrationEndDate, required this.description,   this.games = const [],  this.eventtypes = const []});
+  EventDetailsModel({required this.id, required this.name, required this.startDate, required this.endDate,required this.registrationStartDate, required this.registrationEndDate, required this.description,   this.games = const [],  this.eventtypes = const [],
+  required this.isShowName,required this.isShowDescription, required this.isShowStartDate, required this.isShowEndDate, required this.isShowRegistrationStartDate,
+  required this.isShowRegistrationEndDate});
   factory EventDetailsModel.fromJson(Map<String, dynamic> json) {
     return EventDetailsModel(
         id: json['id'],
@@ -33,6 +41,12 @@ class EventDetailsModel {
           .map((g) => EventTypeDetailsModel.fromJson(g))
           .toList()
           : [],
+      isShowName: json['isShowName'] ?? false,
+      isShowDescription: json['isShowDescription'] ?? false,
+      isShowStartDate: json['isShowStartDate'] ?? false,
+      isShowEndDate: json['isShowEndDate'] ?? false,
+      isShowRegistrationStartDate: json['isShowRegistrationStartDate'] ?? false,
+      isShowRegistrationEndDate: json['isShowRegistrationEndDate'] ?? false
     );
   }
 

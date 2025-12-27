@@ -1,7 +1,9 @@
 
 class ApiEndPoints{
-  static const String baseUrl =  "https://oneup-backend.onrender.com";
-  static const String registrationEndPoint =  "/registration"; 
+  // static const String baseUrl =  "https://wavelike-preprandial-farrah.ngrok-free.dev"; // Temp url
+  // static const String baseUrl =  "https://oneup-backend.onrender.com";
+  static const String baseUrl =  "https://one-up-45115681764.asia-south1.run.app";
+  static const String registrationEndPoint =  "/registration";
   static const String loginEndPoint =  "/login"; 
   static const String logoutEndPoint =  "/logout"; 
   static const String getUserListEndPoint =  "/user-list"; 
@@ -47,4 +49,14 @@ class ApiEndPoints{
   static const String deleteBadgeEndPoint =  "/delete-bedge/";
   static const String updateBadgeEndPoint =  "/update-bedge/";
   static const String assignBadgeToUserEndPoint =  "/assign-bedge-to-user";
+  static const String removeBadgeToUserEndPoint =  "/remove-bedge-from-user";
+
+  static const String addEventSettings =  "/add-event-settings/";
+
+  static const String updateAd =  "/update-ad";
+  static const String getAdList =  "/ad-list";
+  static const String getAdById =  "/ad-by-id/";
+
+
+  static const String getUserDashboard =  "/get-user-dashboard";
 }
